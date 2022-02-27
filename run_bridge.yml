@@ -1,0 +1,23 @@
+- name: run_bridge
+  become: yes
+  hosts: all
+  tasks:
+    - name: Clone container repo
+      git:
+       repo: https://gitlab.torproject.org/tpo/anti-censorship/docker-obfs4-bridge.git
+       dest: /root/docker-obfs4-bridge
+       clone: yes
+       update: yes
+    - name: Copy .env file
+      copy:
+        src: configs/env
+        dest: /root/docker-obfs4-bridge/.env
+    - name: Starting container
+      command: docker-compose --env-file /root/docker-obfs4-bridge/.env --file /root/docker-obfs4-bridge/docker-compose.yml up -d
+      register: out
+    - name: Retrieving first run logs
+      command: docker container logs docker-obfs4-bridge-obfs4-bridge-1
+      register: out
+    
+
+    - debug: var=out.stdout_lines

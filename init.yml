@@ -1,0 +1,46 @@
+# initial configuration
+- name: init
+  become: yes
+  hosts: all
+  tasks:
+    - name: Set up authorized keys for root
+      authorized_key:
+        user: root
+        state: present
+        key: "{{ lookup('file', item) }}"
+      with_fileglob: 
+        - files/admin_pubkeys/*.pub
+    - name: Disable password login
+      lineinfile: dest=/etc/ssh/sshd_config regexp="^PasswordAuthentication" line="PasswordAuthentication no" state=present
+    # Check for unattended-upgrades and kill it
+    - name: Killing unattended-upgrades if present
+      shell: pkill -f unattended -e
+      ignore_errors: true
+    #- name: install dmidecode
+      #apt:
+      #  name: dmidecode
+      #  update_cache: yes
+    - name: update package cache
+      apt:
+        update_cache: yes
+    - name: upgrade packages
+      apt:
+        upgrade: dist
+        force: yes
+    - name: autoremove dependencies
+      apt:
+        autoremove: yes
+
+- name: Install docker stuff
+  import_playbook: docker-install.yml
+
+  #reboot
+- name: Reboot after install is done
+  become: yes
+  hosts: all
+  tasks: 
+    - name: Rebooting Machine...
+      reboot:
+
+- name: Install and run bridge container
+  import_playbook: run_bridge.yml

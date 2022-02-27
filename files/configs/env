@@ -1,0 +1,6 @@
+OR_PORT=8443
+PT_PORT=443
+EMAIL=<your email here>
+#NICKNAME=OptionalNickname
+OBFS4_ENABLE_ADDITIONAL_VARIABLES=1
+#OBFS4V_BridgeDistribution=Moat
