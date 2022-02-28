@@ -5,7 +5,7 @@ This is a quick-n-dirty ansible playbook to setup OBFS4 Tor bridges within a doc
 The playbook uses the official docker container available from the Tor gitlab and works on Debian and Ubuntu. 
 
 
-## Preperation
+## Preparation
 
 * clone repo
 * optional: create ansible inventory if deploying to multiple hosts at once
