@@ -34,6 +34,9 @@
 - name: Install docker stuff
   import_playbook: docker-install.yml
 
+- name: Configure iptables firewall
+  import_playbook: configure-firewall.yml
+
   #reboot
 - name: Reboot after install is done
   become: yes
