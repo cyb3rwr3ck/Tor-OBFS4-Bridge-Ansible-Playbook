@@ -1,0 +1,14 @@
+- name: configure-firewall
+  become: true
+  hosts: all
+  tasks:
+    - name: Backup and "flush" iptables rules files
+      shell: |
+        mv -nv /etc/iptables/rules.v{4,6} /root/
+        touch /etc/iptables/rules.v{4,6}
+        chmod 644 /etc/iptables/rules.v{4,6}
+      args:
+        executable: /bin/bash
+      tags:
+        - firewall
+        - backup

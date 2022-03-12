@@ -1,5 +1,5 @@
 - name: run_bridge
-  become: yes
+  become: true
   hosts: all
   tasks:
     - name: Clone container repo
@@ -12,12 +12,16 @@
       copy:
         src: configs/env
         dest: /root/docker-obfs4-bridge/.env
+    - name: switch to Docker build on ARM Architecture
+      shell: |
+        sed -i.bak "s#FROM debian:stable-slim#FROM arm64v8/debian:stable-slim#" /root/docker-obfs4-bridge/Dockerfile
+        sed -i.bak "s#image: thetorproject/obfs4-bridge:latest#build: .#" /root/docker-obfs4-bridge/docker-compose.yml
+      when: ansible_architecture == "aarch64"
     - name: Starting container
       command: docker-compose --env-file /root/docker-obfs4-bridge/.env --file /root/docker-obfs4-bridge/docker-compose.yml up -d
       register: out
     - name: Retrieving first run logs
       command: docker container logs docker-obfs4-bridge-obfs4-bridge-1
       register: out
-    
 
     - debug: var=out.stdout_lines
