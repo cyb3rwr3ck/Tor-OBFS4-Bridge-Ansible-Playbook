@@ -8,20 +8,50 @@
        dest: /root/docker-obfs4-bridge
        clone: yes
        update: yes
+       force: yes
+      tags:
+        - update
+        - tor
     - name: Copy .env file
       copy:
         src: configs/env
         dest: /root/docker-obfs4-bridge/.env
+      tags:
+        - update
+        - tor
     - name: switch to Docker build on ARM Architecture
       shell: |
         sed -i.bak "s#FROM debian:stable-slim#FROM arm64v8/debian:stable-slim#" /root/docker-obfs4-bridge/Dockerfile
         sed -i.bak "s#image: thetorproject/obfs4-bridge:latest#build: .#" /root/docker-obfs4-bridge/docker-compose.yml
       when: ansible_architecture == "aarch64"
+      tags:
+        - update
+        - tor
+    - name: Build docker-compose project
+      command: docker-compose --env-file /root/docker-obfs4-bridge/.env --file /root/docker-obfs4-bridge/docker-compose.yml build
+      when: ansible_architecture == "aarch64"
+      tags:
+        - update
+        - tor
+    - name: Pull new docker image
+      command: docker-compose --env-file /root/docker-obfs4-bridge/.env --file /root/docker-obfs4-bridge/docker-compose.yml pull
+      when: ansible_architecture == "x86_64"
+      tags:
+        - update
+        - tor
     - name: Starting container
       command: docker-compose --env-file /root/docker-obfs4-bridge/.env --file /root/docker-obfs4-bridge/docker-compose.yml up -d
       register: out
+      tags:
+        - update
+        - tor
     - name: Retrieving first run logs
       command: docker container logs docker-obfs4-bridge-obfs4-bridge-1
       register: out
-
+      tags:
+        - update
+        - tor
     - debug: var=out.stdout_lines
+      tags:
+        - update
+        - tor
