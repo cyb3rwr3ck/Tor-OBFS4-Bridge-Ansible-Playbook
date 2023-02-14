@@ -1,27 +1,87 @@
-- name: run_bridge
+- name: Run_bridge
   become: true
   hosts: all
   tasks:
     - name: Clone container repo
-      git:
-       repo: https://gitlab.torproject.org/tpo/anti-censorship/docker-obfs4-bridge.git
-       dest: /root/docker-obfs4-bridge
-       clone: yes
-       update: yes
+      ansible.builtin.git:
+        repo: https://gitlab.torproject.org/tpo/anti-censorship/docker-obfs4-bridge.git
+        version: "v0.11"
+        dest: /root/docker-obfs4-bridge
+        clone: true
+        update: true
+        force: true
+      tags:
+        - update
+        - tor
     - name: Copy .env file
-      copy:
+      ansible.builtin.copy:
         src: configs/env
         dest: /root/docker-obfs4-bridge/.env
-    - name: switch to Docker build on ARM Architecture
-      shell: |
-        sed -i.bak "s#FROM debian:stable-slim#FROM arm64v8/debian:stable-slim#" /root/docker-obfs4-bridge/Dockerfile
-        sed -i.bak "s#image: thetorproject/obfs4-bridge:latest#build: .#" /root/docker-obfs4-bridge/docker-compose.yml
+        mode: 0600
+      tags:
+        - update
+        - tor
+    - name: Switch to Docker build on ARM Architecture file No1
+      ansible.builtin.replace:
+        path: /root/docker-obfs4-bridge/Dockerfile
+        regexp: "FROM debian:stable-slim"
+        replace: "FROM arm64v8/debian:stable-slim"
+        backup: true
       when: ansible_architecture == "aarch64"
+      tags:
+        - update
+        - tor
+    - name: Switch to Docker build on ARM Architecture file No2
+      ansible.builtin.replace:
+        path: /root/docker-obfs4-bridge/docker-compose.yml
+        regexp: "image: thetorproject/obfs4-bridge:latest"
+        replace: "build: ."
+        backup: true
+      when: ansible_architecture == "aarch64"
+      tags:
+        - update
+        - tor
+    - name: Stop bridge
+      ansible.builtin.command: docker-compose --env-file /root/docker-obfs4-bridge/.env --file /root/docker-obfs4-bridge/docker-compose.yml down
+      register: docker_stopped
+      tags:
+        - update
+        - tor
+    - name: Remove old image
+      ansible.builtin.command: docker image rm docker-obfs4-bridge_obfs4-bridge
+      when: ansible_architecture == "aarch64"
+      tags:
+        - update
+        - tor
+    - name: Build docker-compose project
+      ansible.builtin.command: docker-compose --env-file /root/docker-obfs4-bridge/.env --file /root/docker-obfs4-bridge/docker-compose.yml build
+      when: ansible_architecture == "aarch64"
+      tags:
+        - update
+        - tor
+    - name: Pull new docker image
+      ansible.builtin.command: docker-compose --env-file /root/docker-obfs4-bridge/.env --file /root/docker-obfs4-bridge/docker-compose.yml pull
+      when: ansible_architecture == "x86_64"
+      tags:
+        - update
+        - tor
     - name: Starting container
-      command: docker-compose --env-file /root/docker-obfs4-bridge/.env --file /root/docker-obfs4-bridge/docker-compose.yml up -d
+      ansible.builtin.command: docker-compose --env-file /root/docker-obfs4-bridge/.env --file /root/docker-obfs4-bridge/docker-compose.yml up -d
       register: out
+      tags:
+        - update
+        - tor
+      changed_when: out == 0
     - name: Retrieving first run logs
-      command: docker container logs docker-obfs4-bridge-obfs4-bridge-1
+      ansible.builtin.command: docker container logs docker-obfs4-bridge-obfs4-bridge-1
       register: out
-
-    - debug: var=out.stdout_lines
+      tags:
+        - update
+        - tor
+      changed_when: out == 0
+    - name: Debugging
+      ansible.builtin.debug:
+        var: out.stdout_lines
+      tags:
+        - update
+        - tor
