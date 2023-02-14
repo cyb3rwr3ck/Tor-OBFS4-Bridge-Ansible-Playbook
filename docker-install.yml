@@ -1,10 +1,13 @@
-- name: docker-install
+- name: Docker-install
   become: true
   hosts: all
   tasks:
     # Check for unattended-upgrades and kill it
     - name: Killing unattended-upgrades if any
-      shell: pkill -f unattended -e
+      ansible.builtin.command: pkill -f unattended -e
+      register: result
+      changed_when:
+        - result.rc == 0
       ignore_errors: true
 
     - name: Install required system packages
@@ -15,36 +18,36 @@
           - curl
           - software-properties-common
           - python3-pip
-        state: latest
+        state: present
         update_cache: true
       register: apt_action
       retries: 100
       until: apt_action is success or ('Failed to lock apt for exclusive operation' not in apt_action.msg and '/var/lib/dpkg/lock' not in apt_action.msg)
-    - name: install 'Docker SDK for Python'
-      pip:
+    - name: Install 'Docker SDK for Python'
+      ansible.builtin.pip:
         name: docker
     - name: Add Docker GPG apt Key
-      apt_key:
+      ansible.builtin.apt_key:
         url: https://download.docker.com/linux/debian/gpg
         state: present
 
     - name: Add Docker Repository
-      apt_repository:
+      ansible.builtin.apt_repository:
         repo: deb https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release | lower }} stable
         state: present
-  
+
     - name: Update apt and install docker-ce
       ansible.builtin.apt:
-        pkg: 
+        pkg:
           - docker-ce
-        state: latest
+        state: present
         update_cache: true
       register: apt_action
       retries: 100
       until: apt_action is success or ('Failed to lock apt for exclusive operation' not in apt_action.msg and '/var/lib/dpkg/lock' not in apt_action.msg)
 
-    - name: Install docker-compose  
-      get_url: 
-        url : https://github.com/docker/compose/releases/download/v2.2.3/docker-compose-linux-{{ ansible_architecture }}
+    - name: Install docker-compose
+      ansible.builtin.get_url:
+        url: https://github.com/docker/compose/releases/download/v2.2.3/docker-compose-linux-{{ ansible_architecture }}
         dest: /usr/local/bin/docker-compose
-        mode: 'u+x,g+x'
+        mode: "u+x,g+x"

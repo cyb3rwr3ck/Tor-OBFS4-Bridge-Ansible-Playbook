@@ -1,35 +1,38 @@
 # initial configuration
-- name: init
-  become: yes
+- name: Init
+  become: true
   hosts: all
   tasks:
     - name: Set up authorized keys for root
-      authorized_key:
+      ansible.posix.authorized_key:
         user: root
         state: present
         key: "{{ lookup('file', item) }}"
-      with_fileglob: 
+      with_fileglob:
         - files/admin_pubkeys/*.pub
     - name: Disable password login
-      lineinfile: dest=/etc/ssh/sshd_config regexp="^PasswordAuthentication" line="PasswordAuthentication no" state=present
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: ^PasswordAuthentication
+        line: PasswordAuthentication no
+        state: present
     # Check for unattended-upgrades and kill it
     - name: Killing unattended-upgrades if present
-      shell: pkill -f unattended -e
+      ansible.builtin.command: pkill -f unattended -e
+      register: result
+      changed_when:
+        - result == 0
       ignore_errors: true
-    #- name: install dmidecode
-      #apt:
-      #  name: dmidecode
-      #  update_cache: yes
-    - name: update package cache
-      apt:
-        update_cache: yes
-    - name: upgrade packages
-      apt:
+    - name: Update package cache
+      ansible.builtin.apt:
+        update_cache: true
+    - name: Upgrade packages
+      ansible.builtin.apt:
         upgrade: dist
-        force: yes
-    - name: autoremove dependencies
-      apt:
-        autoremove: yes
+        force: true
+    - name: Autoremove dependencies
+      ansible.builtin.apt:
+        autoremove: true
 
 - name: Install docker stuff
   import_playbook: docker-install.yml
@@ -37,13 +40,13 @@
 - name: Configure iptables firewall
   import_playbook: configure-firewall.yml
 
-  #reboot
+  # reboot
 - name: Reboot after install is done
-  become: yes
+  become: true
   hosts: all
-  tasks: 
+  tasks:
     - name: Rebooting Machine...
-      reboot:
+      ansible.builtin.reboot:
 
 - name: Install and run bridge container
-  import_playbook: run_bridge.yml
+  ansible.builtin.import_playbook: run_bridge.yml
